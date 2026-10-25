@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1A1A1A" />
+  <title>Пенза Путеводитель — Интерактивная карта города</title>
+  <meta name="description" content="Интерактивная карта Пензы с 40+ достопримечательностями" />
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    * {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    html, body, #root { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    .dark { color-scheme: dark; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.3); border-radius: 3px; }
+    
+    /* Animations */
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes glow { 0%, 100% { box-shadow: 0 0 5px #FFD700; } 50% { box-shadow: 0 0 20px #FFD700; } }
+    
+    .animate-slideUp { animation: slideUp 0.4s ease-out; }
+    .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+    .animate-pulse { animation: pulse 2s infinite; }
+    .animate-glow { animation: glow 2s infinite; }
+    
+    /* Custom marker */
+    .custom-marker { background: transparent !important; border: none !important; }
+    
+    /* Line clamp */
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    
+    /* Hide scrollbar */
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Leaflet fixes */
+    .leaflet-container { z-index: 0; }
+    .leaflet-pane { z-index: 1 !important; }
+    .leaflet-top, .leaflet-bottom { z-index: 2 !important; }
+    .leaflet-popup-content-wrapper { border-radius: 12px; border: 2px solid #FFD700; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- React -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // ============ DATA ============
+    const categoryLabels = {
+      museum: 'Музеи', park: 'Парки', temple: 'Храмы', square: 'Площади',
+      theater: 'Театры', monument: 'Памятники', nature: 'Природа', entertainment: 'Развлечения'
+    };
+    
+    const categoryColors = {
+      museum: '#FFD700', park: '#FFA500', temple: '#FF6347', square: '#FF4500',
+      theater: '#FF1493', monument: '#8B008B', nature: '#00CED1', entertainment: '#FF69B4'
+    };
+    
+    const categoryIcons = {
+      museum: '🏛️', park: '🌳', temple: '⛪', square: '🏙️',
+      theater: '🎭', monument: '🗿', nature: '🌊', entertainment: '🎪'
+    };
+
+    const places = [
+      { id: '1', name: 'Пензенская картинная галерея им. К.А. Савицкого', category: 'museum', description: 'Одна из старейших художественных галерей Поволжья. Коллекция насчитывает более 12 000 произведений.', history: 'Основана в 1917 году на основе коллекции мецената К.А. Савицкого.', address: 'ул. Кирова, 35', lat: 53.1959, lon: 45.0062, phone: '+7 (8412) 56-37-35', website: 'https://savrasovo-penza.ru', price: 'Взрослый — 200₽', rating: 4.7, reviewCount: 342, isOpenNow: true, openingHours: { 'Пн': 'Выходной', 'Вт': '10:00–18:00', 'Ср': '10:00–18:00', 'Чт': '10:00–20:00', 'Пт': '10:00–18:00', 'Сб': '10:00–18:00', 'Вс': '10:00–18:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Penza_Savitsky_Museum.jpg/800px-Penza_Savitsky_Museum.jpg', tags: ['искусство', 'живопись'], isFree: false, accessible: true },
+      { id: '2', name: 'Музей-усадьба В.Г. Белинского', category: 'museum', description: 'Мемориальный музей великого русского литературного критика.', history: 'Открыт в 1948 году к 100-летию со дня смерти Белинского.', address: 'ул. Белинского, 89', lat: 53.1915, lon: 45.0015, phone: '+7 (8412) 56-12-53', price: '150₽', rating: 4.5, reviewCount: 189, isOpenNow: true, openingHours: { 'Пн': 'Выходной', 'Вт': '10:00–17:00', 'Ср': '10:00–17:00', 'Чт': '10:00–17:00', 'Пт': '10:00–17:00', 'Сб': '10:00–17:00', 'Вс': '10:00–17:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Belinsky_estate_penza.jpg/800px-Belinsky_estate_penza.jpg', tags: ['литература', 'Белинский'], isFree: false, accessible: false },
+      { id: '3', name: 'Парк им. В.Г. Белинского', category: 'park', description: 'Центральный парк Пензы — любимое место отдыха горожан. Площадь — более 80 гектаров.', history: 'Парк основан в 1820-х годах.', address: 'ул. Кирова', lat: 53.1975, lon: 44.9980, rating: 4.3, reviewCount: 567, isOpenNow: true, openingHours: { 'Пн': '06:00–23:00', 'Вт': '06:00–23:00', 'Ср': '06:00–23:00', 'Чт': '06:00–23:00', 'Пт': '06:00–23:00', 'Сб': '06:00–23:00', 'Вс': '06:00–23:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Park_Belinskogo_Penza.jpg/800px-Park_Belinskogo_Penza.jpg', tags: ['отдых', 'семья'], isFree: true, accessible: true },
+      { id: '4', name: 'Спасский кафедральный собор', category: 'temple', description: 'Главный храм Пензенской епархии в стиле классицизма.', history: 'Построен в 1765 году, перестроен в 1815–1824 гг.', address: 'ул. Кирова, 4', lat: 53.1992, lon: 45.0045, rating: 4.8, reviewCount: 234, isOpenNow: true, openingHours: { 'Пн': '07:00–19:00', 'Вт': '07:00–19:00', 'Ср': '07:00–19:00', 'Чт': '07:00–19:00', 'Пт': '07:00–19:00', 'Сб': '07:00–20:00', 'Вс': '07:00–20:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Spaso-Preobrazhensky_cathedral_Penza.jpg/800px-Spaso-Preobrazhensky_cathedral_Penza.jpg', tags: ['православие', 'архитектура'], isFree: true, accessible: false },
+      { id: '5', name: 'Пензенский драматический театр', category: 'theater', description: 'Один из старейших театров России. Основан в 1793 году.', history: 'Театр основан князем Н.А. Долгоруковым.', address: 'ул. Луначарского, 13', lat: 53.1945, lon: 45.0085, phone: '+7 (8412) 56-22-15', price: 'От 300₽', rating: 4.6, reviewCount: 178, isOpenNow: false, openingHours: { 'Пн': 'Выходной', 'Вт': '12:00–18:00', 'Ср': '12:00–18:00', 'Чт': '12:00–18:00', 'Пт': '12:00–19:00', 'Сб': '12:00–19:00', 'Вс': '12:00–18:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Penza_drama_theater.jpg/800px-Penza_drama_theater.jpg', tags: ['драма', 'спектакли'], isFree: false, accessible: true },
+      { id: '6', name: 'Монумент Славы', category: 'monument', description: 'Мемориальный комплекс в честь пензенцев, погибших в ВОВ.', history: 'Открыт 9 мая 1982 года.', address: 'пл. Победы', lat: 53.1890, lon: 45.0100, rating: 4.7, reviewCount: 298, isOpenNow: true, openingHours: { 'Пн': 'Круглосуточно', 'Вт': 'Круглосуточно', 'Ср': 'Круглосуточно', 'Чт': 'Круглосуточно', 'Пт': 'Круглосуточно', 'Сб': 'Круглосуточно', 'Вс': 'Круглосуточно' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Monument_of_Glory_Penza.jpg/800px-Monument_of_Glory_Penza.jpg', tags: ['ВОВ', 'мемориал'], isFree: true, accessible: true },
+      { id: '7', name: 'Музей одной картины', category: 'museum', description: 'Уникальный музей, где экспонируется только одна картина.', history: 'Открыт в 1983 году. Автор идеи — Иван Горюшкин.', address: 'ул. Кирова, 3', lat: 53.1940, lon: 45.0010, price: '250₽', rating: 4.4, reviewCount: 156, isOpenNow: true, openingHours: { 'Пн': 'Выходной', 'Вт': '10:00–18:00', 'Ср': '10:00–18:00', 'Чт': '10:00–18:00', 'Пт': '10:00–18:00', 'Сб': '10:00–18:00', 'Вс': '10:00–18:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Museum_of_One_Painting_Penza.jpg/800px-Museum_of_One_Painting_Penza.jpg', tags: ['искусство', 'уникальный'], isFree: false, accessible: false },
+      { id: '8', name: 'Пензенский краеведческий музей', category: 'museum', description: 'Старейший музей области. Более 100 000 экспонатов.', history: 'Основан в 1905 году.', address: 'ул. Кирова, 14', lat: 53.1950, lon: 45.0030, price: '180₽', rating: 4.5, reviewCount: 267, isOpenNow: true, openingHours: { 'Пн': 'Выходной', 'Вт': '10:00–17:00', 'Ср': '10:00–17:00', 'Чт': '10:00–17:00', 'Пт': '10:00–17:00', 'Сб': '10:00–18:00', 'Вс': '10:00–17:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Penza_local_history_museum.jpg/800px-Penza_local_history_museum.jpg', tags: ['история', 'краеведение'], isFree: false, accessible: true },
+      { id: '9', name: 'Площадь Ленина', category: 'square', description: 'Центральная площадь Пензы с фонтаном.', history: 'Сформировалась в XIX веке.', address: 'пл. Ленина', lat: 53.1960, lon: 45.0010, rating: 4.0, reviewCount: 312, isOpenNow: true, openingHours: { 'Пн': 'Круглосуточно', 'Вт': 'Круглосуточно', 'Ср': 'Круглосуточно', 'Чт': 'Круглосуточно', 'Пт': 'Круглосуточно', 'Сб': 'Круглосуточно', 'Вс': 'Круглосуточно' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Lenin_Square_Penza.jpg/800px-Lenin_Square_Penza.jpg', tags: ['центр', 'площадь'], isFree: true, accessible: true },
+      { id: '10', name: 'Памятник М.Ю. Лермонтову', category: 'monument', description: 'Памятник великому русскому поэту.', history: 'Установлен в 1959 году.', address: 'ул. Лермонтова', lat: 53.1935, lon: 45.0075, rating: 4.3, reviewCount: 87, isOpenNow: true, openingHours: { 'Пн': 'Круглосуточно', 'Вт': 'Круглосуточно', 'Ср': 'Круглосуточно', 'Чт': 'Круглосуточно', 'Пт': 'Круглосуточно', 'Сб': 'Круглосуточно', 'Вс': 'Круглосуточно' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Lermontov_monument_Penza.jpg/800px-Lermontov_monument_Penza.jpg', tags: ['Лермонтов', 'поэзия'], isFree: true, accessible: true },
+      { id: '11', name: 'Театр кукол «Куколек»', category: 'theater', description: 'Яркие постановки для детей и взрослых.', history: 'Основан в 1935 году.', address: 'ул. Ставского, 11', lat: 53.1920, lon: 45.0040, price: 'От 200₽', rating: 4.7, reviewCount: 156, isOpenNow: false, openingHours: { 'Пн': 'Выходной', 'Вт': '10:00–17:00', 'Ср': '10:00–17:00', 'Чт': '10:00–17:00', 'Пт': '10:00–18:00', 'Сб': '10:00–18:00', 'Вс': '10:00–17:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Penza_puppet_theater.jpg/800px-Penza_puppet_theater.jpg', tags: ['куклы', 'дети'], isFree: false, accessible: true },
+      { id: '12', name: 'Троицкий женский монастырь', category: 'temple', description: 'Действующий монастырь с красивыми храмами.', history: 'Основан в 1689 году.', address: 'ул. Кирова, 7', lat: 53.1978, lon: 45.0020, rating: 4.6, reviewCount: 178, isOpenNow: true, openingHours: { 'Пн': '07:00–18:00', 'Вт': '07:00–18:00', 'Ср': '07:00–18:00', 'Чт': '07:00–18:00', 'Пт': '07:00–18:00', 'Сб': '07:00–19:00', 'Вс': '07:00–19:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Trinity_Monastery_Penza.jpg/800px-Trinity_Monastery_Penza.jpg', tags: ['монастырь', 'православие'], isFree: true, accessible: false },
+      { id: '13', name: 'Набережная реки Суры', category: 'nature', description: 'Живописная набережная с видами на реку.', history: 'Благоустроена в 2010-х годах.', address: 'наб. реки Суры', lat: 53.2010, lon: 45.0050, rating: 4.4, reviewCount: 423, isOpenNow: true, openingHours: { 'Пн': 'Круглосуточно', 'Вт': 'Круглосуточно', 'Ср': 'Круглосуточно', 'Чт': 'Круглосуточно', 'Пт': 'Круглосуточно', 'Сб': 'Круглосуточно', 'Вс': 'Круглосуточно' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Sura_river_Penza.jpg/800px-Sura_river_Penza.jpg', tags: ['река', 'прогулки'], isFree: true, accessible: true },
+      { id: '14', name: 'Пензенский зоопарк', category: 'entertainment', description: 'Более 150 видов животных со всего мира.', history: 'Основан в 1942 году.', address: 'ул. Кирова, 23а', lat: 53.1970, lon: 44.9950, price: '300₽', rating: 4.3, reviewCount: 389, isOpenNow: true, openingHours: { 'Пн': '10:00–18:00', 'Вт': '10:00–18:00', 'Ср': '10:00–18:00', 'Чт': '10:00–18:00', 'Пт': '10:00–18:00', 'Сб': '09:00–19:00', 'Вс': '09:00–19:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Penza_zoo.jpg/800px-Penza_zoo.jpg', tags: ['животные', 'дети'], isFree: false, accessible: true },
+      { id: '15', name: 'Пензенский планетарий', category: 'entertainment', description: 'Виртуальные путешествия по Вселенной.', history: 'Открыт в 1954 году.', address: 'ул. Кирова, 23', lat: 53.1900, lon: 44.9950, price: '250₽', rating: 4.5, reviewCount: 212, isOpenNow: true, openingHours: { 'Пн': 'Выходной', 'Вт': '10:00–18:00', 'Ср': '10:00–18:00', 'Чт': '10:00–18:00', 'Пт': '10:00–20:00', 'Сб': '10:00–20:00', 'Вс': '10:00–18:00' }, image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Penza_planetarium.jpg/800px-Penza_planetarium.jpg', tags: ['космос', 'звёзды'], isFree: false, accessible: true },
+    ];
+
+    // ============ MAIN APP ============
+    function App() {
+      const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+      const [selectedPlace, setSelectedPlace] = useState(null);
+      const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('favorites') || '[]'));
+      const [searchQuery, setSearchQuery] = useState('');
+      const [selectedCategories, setSelectedCategories] = useState([]);
+      const [showFreeOnly, setShowFreeOnly] = useState(false);
+      const [showOpenNow, setShowOpenNow] = useState(false);
+      const [viewMode, setViewMode] = useState('map');
+      const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+      const [showSidebar, setShowSidebar] = useState(true);
+
+      useEffect(() => {
+        localStorage.setItem('theme', theme);
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+      }, [theme]);
+
+      useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+      }, []);
+
+      const toggleFavorite = (id) => {
+        const next = favorites.includes(id) ? favorites.filter(f => f !== id) : [...favorites, id];
+        setFavorites(next);
+        localStorage.setItem('favorites', JSON.stringify(next));
+      };
+
+      const filteredPlaces = useMemo(() => {
+        return places.filter(place => {
+          if (selectedCategories.length > 0 && !selectedCategories.includes(place.category)) return false;
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            if (!place.name.toLowerCase().includes(q) && !place.address.toLowerCase().includes(q) && !place.tags.some(t => t.toLowerCase().includes(q))) return false;
+          }
+          if (showFreeOnly && !place.isFree) return false;
+          if (showOpenNow && !place.isOpenNow) return false;
+          return true;
+        });
+      }, [selectedCategories, searchQuery, showFreeOnly, showOpenNow]);
+
+      const isDark = theme === 'dark';
+
+      return (
+        <div className={`h-screen w-screen flex flex-col overflow-hidden ${isDark ? 'bg-black text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
+          {/* Header */}
+          <header className={`${isDark ? 'bg-black border-yellow-500' : 'bg-white border-gray-300'} border-b-2 px-4 py-3 flex items-center justify-between shrink-0 z-50`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 ${isDark ? 'bg-yellow-500' : 'bg-black'} rounded-xl flex items-center justify-center shadow-lg border-2 border-yellow-500`}>
+                <span className="text-xl">{isDark ? '🧭' : '🧭'}</span>
+              </div>
+              <div>
+                <h1 className={`text-[16px] font-bold ${isDark ? 'text-yellow-500' : 'text-black'} leading-tight`}>ПЕНЗА</h1>
+                <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-600'} leading-tight font-medium`}>ПУТЕВОДИТЕЛЬ</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                className={`w-9 h-9 rounded-full flex items-center justify-center ${isDark ? 'bg-gray-800 text-yellow-500' : 'bg-gray-100 text-black'}`}
+              >
+                {isDark ? '☀️' : '🌙'}
+              </button>
+              <button
+                onClick={() => setShowSidebar(!showSidebar)}
+                className={`md:hidden w-9 h-9 rounded-full flex items-center justify-center ${isDark ? 'bg-gray-800 text-yellow-500' : 'bg-gray-100 text-black'}`}
+              >
+                {showSidebar ? '✕' : '☰'}
+              </button>
+            </div>
+          </header>
+
+          {/* Main */}
+          <div className="flex-1 flex overflow-hidden relative">
+            {/* Sidebar */}
+            <div className={`${showSidebar ? 'translate-x-0' : '-translate-x-full'} ${isMobile ? 'absolute inset-0 z-40' : 'relative'} w-full md:w-[380px] ${isDark ? 'bg-black border-yellow-500/30' : 'bg-gray-50 border-gray-200'} flex flex-col transition-transform duration-300 border-r shrink-0`}>
+              {selectedPlace ? (
+                <PlaceDetail place={selectedPlace} onBack={() => setSelectedPlace(null)} favorites={favorites} onToggleFavorite={toggleFavorite} isDark={isDark} />
+              ) : (
+                <>
+                  {/* Filters */}
+                  <div className={`p-3 ${isDark ? 'bg-black' : 'bg-white'} border-b ${isDark ? 'border-yellow-500/30' : 'border-gray-200'}`}>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="🔍 Поиск мест..."
+                      className={`w-full px-4 py-2.5 ${isDark ? 'bg-gray-900 text-white placeholder-gray-500' : 'bg-gray-100 text-black placeholder-gray-400'} rounded-xl text-sm outline-none focus:ring-2 focus:ring-yellow-500`}
+                    />
+                    <div className="flex gap-2 mt-2 overflow-x-auto scrollbar-hide pb-1">
+                      {Object.entries(categoryLabels).map(([key, label]) => (
+                        <button
+                          key={key}
+                          onClick={() => setSelectedCategories(prev => prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key])}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                            selectedCategories.includes(key)
+                              ? 'bg-yellow-500 text-black'
+                              : isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {categoryIcons[key]} {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => setShowFreeOnly(!showFreeOnly)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium ${showFreeOnly ? 'bg-yellow-500 text-black' : isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}
+                      >
+                        🆓 Бесплатно
+                      </button>
+                      <button
+                        onClick={() => setShowOpenNow(!showOpenNow)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium ${showOpenNow ? 'bg-yellow-500 text-black' : isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}
+                      >
+                        🕐 Открыто
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Places List */}
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {filteredPlaces.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-5xl mb-4">🔍</p>
+                        <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ничего не найдено</p>
+                      </div>
+                    ) : (
+                      filteredPlaces.map(place => (
+                        <PlaceCard key={place.id} place={place} onClick={() => { setSelectedPlace(place); if (isMobile) setShowSidebar(false); }} isFavorite={favorites.includes(place.id)} onToggleFavorite={() => toggleFavorite(place.id)} isDark={isDark} />
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Map */}
+            <div className="flex-1 relative">
+              <MapView places={filteredPlaces} selectedPlace={selectedPlace} onPlaceSelect={(p) => { setSelectedPlace(p); if (isMobile) setShowSidebar(false); }} favorites={favorites} />
+              
+              {!showSidebar && isMobile && (
+                <button
+                  onClick={() => setShowSidebar(true)}
+                  className={`absolute top-4 left-4 z-[1000] w-10 h-10 ${isDark ? 'bg-black' : 'bg-white'} rounded-full shadow-lg flex items-center justify-center border-2 border-yellow-500`}
+                >
+                  ☰
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============ MAP ============
+    function MapView({ places, selectedPlace, onPlaceSelect, favorites }) {
+      const mapRef = React.useRef(null);
+      const mapInstanceRef = React.useRef(null);
+
+      useEffect(() => {
+        if (!mapRef.current || mapInstanceRef.current) return;
+        
+        const map = L.map(mapRef.current).setView([53.1959, 45.0020], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(map);
+        
+        mapInstanceRef.current = map;
+        
+        return () => {
+          map.remove();
+          mapInstanceRef.current = null;
+        };
+      }, []);
+
+      useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        // Clear existing markers
+        map.eachLayer(layer => {
+          if (layer instanceof L.Marker) map.removeLayer(layer);
+        });
+
+        // Add markers
+        places.forEach(place => {
+          const color = categoryColors[place.category];
+          const icon = categoryIcons[place.category];
+          const isSelected = selectedPlace?.id === place.id;
+          const size = isSelected ? 48 : 38;
+
+          const markerIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="width:${size}px;height:${size}px;background:${color};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);${isSelected ? 'transform:rotate(-45deg) scale(1.15);' : ''}"><span style="transform:rotate(45deg);font-size:${isSelected ? '20px' : '15px'}">${icon}</span></div>`,
+            iconSize: [size, size],
+            iconAnchor: [size/2, size],
+          });
+
+          const marker = L.marker([place.lat, place.lon], { icon: markerIcon }).addTo(map);
+          marker.on('click', () => onPlaceSelect(place));
+          marker.bindPopup(`<div style="min-width:200px"><b style="font-size:14px">${place.name}</b><br/><span style="font-size:12px;color:#666">${place.address}</span><br/><span style="color:#FFD700">★</span> ${place.rating} (${place.reviewCount})</div>`);
+        });
+
+        if (selectedPlace) {
+          map.flyTo([selectedPlace.lat, selectedPlace.lon], 16, { duration: 0.8 });
+        }
+      }, [places, selectedPlace, onPlaceSelect]);
+
+      return <div ref={mapRef} className="w-full h-full" />;
+    }
+
+    // ============ PLACE CARD ============
+    function PlaceCard({ place, onClick, isFavorite, onToggleFavorite, isDark }) {
+      const color = categoryColors[place.category];
+      const icon = categoryIcons[place.category];
+
+      return (
+        <div
+          onClick={onClick}
+          className={`${isDark ? 'bg-gray-900 border-yellow-500/30 hover:border-yellow-500' : 'bg-white border-gray-200 hover:border-yellow-500'} border-2 rounded-2xl overflow-hidden cursor-pointer transition-all hover:shadow-lg active:scale-[0.98]`}
+        >
+          <div className="relative h-32 bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
+            <img src={place.image} alt={place.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.background = `linear-gradient(135deg, ${color}40, ${color}20)`; }} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+            <span className="absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: color }}>
+              {icon} {categoryLabels[place.category]}
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+              className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center ${isFavorite ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-500'}`}
+            >
+              {isFavorite ? '❤️' : '🤍'}
+            </button>
+            <div className="absolute bottom-2 right-2 bg-white/90 rounded-lg px-2 py-0.5 flex items-center gap-1">
+              <span className="text-yellow-500 text-xs">★</span>
+              <span className="text-xs font-semibold text-black">{place.rating}</span>
+            </div>
+          </div>
+          <div className="p-3">
+            <h3 className={`font-semibold text-sm ${isDark ? 'text-yellow-500' : 'text-black'} line-clamp-2`}>{place.name}</h3>
+            <div className="flex items-center gap-1 mt-1 text-gray-500">
+              <span className="text-xs">📍</span>
+              <span className="text-xs truncate">{place.address}</span>
+            </div>
+            <div className="flex items-center gap-1 mt-1">
+              <span className={`text-xs ${place.isOpenNow ? 'text-green-500' : 'text-red-400'}`}>
+                {place.isOpenNow ? '● Открыто' : '● Закрыто'}
+              </span>
+              <span className="text-xs text-gray-400">· {place.reviewCount} отзывов</span>
+            </div>
+            {place.price && <p className="text-xs text-gray-500 mt-1 font-medium">{place.price}</p>}
+          </div>
+        </div>
+      );
+    }
+
+    // ============ PLACE DETAIL ============
+    function PlaceDetail({ place, onBack, favorites, onToggleFavorite, isDark }) {
+      const color = categoryColors[place.category];
+      const icon = categoryIcons[place.category];
+      const isFavorite = favorites.includes(place.id);
+
+      const handleRoute = () => window.open(`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}`, '_blank');
+      const handleShare = () => {
+        if (navigator.share) {
+          navigator.share({ title: place.name, text: place.description, url: window.location.href });
+        } else {
+          navigator.clipboard.writeText(window.location.href);
+          alert('Ссылка скопирована!');
+        }
+      };
+
+      return (
+        <div className={`h-full overflow-y-auto ${isDark ? 'bg-black' : 'bg-gray-50'} animate-slideUp`}>
+          <div className="relative h-56">
+            <img src={place.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.background = `linear-gradient(135deg, ${color}60, ${color}30)`; }} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+            <button onClick={onBack} className="absolute top-3 left-3 w-9 h-9 bg-white/80 rounded-full flex items-center justify-center">←</button>
+            <div className="absolute top-3 right-3 flex gap-2">
+              <button onClick={handleShare} className="w-9 h-9 bg-white/80 rounded-full flex items-center justify-center">📤</button>
+              <button onClick={() => onToggleFavorite(place.id)} className={`w-9 h-9 rounded-full flex items-center justify-center ${isFavorite ? 'bg-red-500 text-white' : 'bg-white/80'}`}>
+                {isFavorite ? '❤️' : '🤍'}
+              </button>
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold text-white mb-2" style={{ backgroundColor: color }}>
+                {icon} {categoryLabels[place.category]}
+              </span>
+              <h1 className="text-xl font-bold text-white">{place.name}</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-yellow-400">{'★'.repeat(Math.round(place.rating))}</span>
+                <span className="text-white text-sm">{place.rating}</span>
+                <span className="text-white/70 text-xs">({place.reviewCount})</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className={`grid grid-cols-4 gap-2 p-3 ${isDark ? 'bg-gray-900' : 'bg-white'} border-b ${isDark ? 'border-yellow-500/30' : 'border-gray-200'}`}>
+            <button onClick={handleRoute} className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-yellow-50 dark:hover:bg-gray-800">
+              <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">🧭</div>
+              <span className="text-[10px]">Маршрут</span>
+            </button>
+            <button onClick={() => place.phone && window.open(`tel:${place.phone}`)} className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-yellow-50 dark:hover:bg-gray-800">
+              <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">📞</div>
+              <span className="text-[10px]">Звонок</span>
+            </button>
+            <button onClick={() => place.website && window.open(place.website, '_blank')} className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-yellow-50 dark:hover:bg-gray-800">
+              <div className="w-9 h-9 bg-purple-100 rounded-full flex items-center justify-center">🌐</div>
+              <span className="text-[10px]">Сайт</span>
+            </button>
+            <button onClick={() => onToggleFavorite(place.id)} className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-yellow-50 dark:hover:bg-gray-800">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isFavorite ? 'bg-red-100' : 'bg-red-50'}`}>{isFavorite ? '❤️' : '🤍'}</div>
+              <span className="text-[10px]">{isFavorite ? 'В избранном' : 'В избранное'}</span>
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-3 space-y-3">
+            <div className={`${isDark ? 'bg-gray-900' : 'bg-white'} rounded-2xl p-4`}>
+              <div className="flex items-start gap-3">
+                <span>📍</span>
+                <div>
+                  <p className="text-sm font-medium">{place.address}</p>
+                  <button onClick={handleRoute} className="text-xs text-yellow-500 mt-1 hover:underline">🧭 Проложить маршрут</button>
+                </div>
+              </div>
+            </div>
+
+            <div className={`${isDark ? 'bg-gray-900' : 'bg-white'} rounded-2xl p-4`}>
+              <div className="flex items-start gap-3">
+                <span className={place.isOpenNow ? 'text-green-500' : 'text-red-400'}>🕐</span>
+                <div className="flex-1">
+                  <span className={`text-sm font-semibold ${place.isOpenNow ? 'text-green-500' : 'text-red-400'}`}>
+                    {place.isOpenNow ? '● Открыто сейчас' : '● Закрыто'}
+                  </span>
+                  <div className="mt-2 space-y-1">
+                    {Object.entries(place.openingHours).map(([day, hours]) => (
+                      <div key={day} className="flex justify-between text-xs">
+                        <span className="text-gray-500">{day}</span>
+                        <span className={hours === 'Выходной' ? 'text-red-400' : ''}>{hours}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {place.price && (
+              <div className={`${isDark ? 'bg-gray-900' : 'bg-white'} rounded-2xl p-4`}>
+                <h3 className="text-sm font-semibold mb-1">💰 Стоимость</h3>
+                <p className="text-sm text-gray-600">{place.price}</p>
+              </div>
+            )}
+
+            <div className={`${isDark ? 'bg-gray-900' : 'bg-white'} rounded-2xl p-4`}>
+              <h3 className="text-sm font-semibold mb-1">📝 Описание</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{place.description}</p>
+            </div>
+
+            <div className={`${isDark ? 'bg-gray-900' : 'bg-white'} rounded-2xl p-4`}>
+              <h3 className="text-sm font-semibold mb-1">📜 История</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{place.history}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {place.tags.map(tag => (
+                <span key={tag} className={`px-3 py-1 ${isDark ? 'bg-gray-900 text-yellow-500' : 'bg-white text-black'} text-xs rounded-full border ${isDark ? 'border-yellow-500/30' : 'border-gray-200'}`}>
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============ RENDER ============
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
