@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Place, categoryColors, categoryIcons } from '../data/places';
-import { MapPin, Navigation, ZoomIn, ZoomOut } from 'lucide-react';
+import { Navigation, ZoomIn, ZoomOut, LocateFixed } from 'lucide-react';
 
 interface MapViewProps {
   places: Place[];
@@ -10,12 +10,13 @@ interface MapViewProps {
   onPlaceSelect: (place: Place) => void;
   center?: [number, number];
   zoom?: number;
+  favorites?: string[];
 }
 
-function createCustomIcon(category: string, isSelected: boolean) {
-  const color = categoryColors[category as keyof typeof categoryColors] || '#6b7280';
+function createCustomIcon(category: string, isSelected: boolean, isFavorite: boolean) {
+  const color = categoryColors[category as keyof typeof categoryColors] || '#007AFF';
   const icon = categoryIcons[category as keyof typeof categoryIcons] || '📍';
-  const size = isSelected ? 44 : 36;
+  const size = isSelected ? 48 : 38;
   
   return L.divIcon({
     className: 'custom-marker',
@@ -29,11 +30,12 @@ function createCustomIcon(category: string, isSelected: boolean) {
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      transition: all 0.2s ease;
-      ${isSelected ? 'transform: rotate(-45deg) scale(1.2); box-shadow: 0 6px 20px rgba(0,0,0,0.4);' : ''}
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+      ${isSelected ? 'transform: rotate(-45deg) scale(1.15); box-shadow: 0 8px 24px rgba(0,0,0,0.35);' : ''}
+      ${isFavorite ? 'box-shadow: 0 4px 16px rgba(255,59,48,0.4);' : ''}
     ">
-      <span style="transform: rotate(45deg); font-size: ${isSelected ? '18px' : '14px'};">${icon}</span>
+      <span style="transform: rotate(45deg); font-size: ${isSelected ? '20px' : '15px'};">${icon}</span>
     </div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size],
@@ -43,33 +45,35 @@ function createCustomIcon(category: string, isSelected: boolean) {
 
 function MapController({ center, zoom }: { center?: [number, number]; zoom?: number }) {
   const map = useMap();
-  if (center) {
-    map.flyTo(center, zoom || 15, { duration: 0.8 });
-  }
+  useEffect(() => {
+    if (center) {
+      map.flyTo(center, zoom || 15, { duration: 0.8 });
+    }
+  }, [center, zoom, map]);
   return null;
 }
 
-export default function MapView({ places, selectedPlace, onPlaceSelect, center, zoom }: MapViewProps) {
-  const [mapCenter, setMapCenter] = useState<[number, number]>([53.1959, 45.0020]);
-  const [mapZoom, setMapZoom] = useState(14);
+export default function MapView({ places, selectedPlace, onPlaceSelect, center, zoom, favorites = [] }: MapViewProps) {
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
   const handleLocate = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setMapCenter([pos.coords.latitude, pos.coords.longitude]);
-          setMapZoom(16);
+          setUserLocation([pos.coords.latitude, pos.coords.longitude]);
         },
-        () => alert('Не удалось определить местоположение')
+        () => alert('Не удалось определить местоположение. Проверьте настройки доступа.')
       );
+    } else {
+      alert('Геолокация не поддерживается вашим браузером');
     }
   };
 
   return (
     <div className="relative w-full h-full">
       <MapContainer
-        center={center || mapCenter}
-        zoom={zoom || mapZoom}
+        center={center || [53.1959, 45.0020]}
+        zoom={zoom || 14}
         className="w-full h-full z-0"
         zoomControl={false}
       >
@@ -83,23 +87,23 @@ export default function MapView({ places, selectedPlace, onPlaceSelect, center, 
           <Marker
             key={place.id}
             position={[place.lat, place.lon]}
-            icon={createCustomIcon(place.category, selectedPlace?.id === place.id)}
+            icon={createCustomIcon(place.category, selectedPlace?.id === place.id, favorites.includes(place.id))}
             eventHandlers={{
               click: () => onPlaceSelect(place),
             }}
           >
             <Popup>
-              <div className="p-1 min-w-[200px]">
-                <h3 className="font-bold text-sm text-gray-800">{place.name}</h3>
-                <p className="text-xs text-gray-500 mt-1">{place.address}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <span className="text-yellow-500 text-xs">★</span>
-                  <span className="text-xs font-medium">{place.rating}</span>
-                  <span className="text-xs text-gray-400">({place.reviewCount})</span>
+              <div className="p-1 min-w-[220px]">
+                <h3 className="font-semibold text-[14px] text-gray-900 leading-tight">{place.name}</h3>
+                <p className="text-[12px] text-gray-500 mt-1">{place.address}</p>
+                <div className="flex items-center gap-1 mt-1.5">
+                  <span className="text-yellow-500 text-[12px]">★</span>
+                  <span className="text-[12px] font-medium text-gray-700">{place.rating}</span>
+                  <span className="text-[11px] text-gray-400">({place.reviewCount})</span>
                 </div>
                 <button
                   onClick={() => onPlaceSelect(place)}
-                  className="mt-2 text-xs bg-blue-500 text-white px-3 py-1 rounded-full hover:bg-blue-600 transition-colors"
+                  className="mt-2.5 w-full text-[13px] bg-blue-500 text-white px-3 py-2 rounded-xl font-medium hover:bg-blue-600 active:scale-[0.98] transition-all"
                 >
                   Подробнее →
                 </button>
@@ -107,39 +111,70 @@ export default function MapView({ places, selectedPlace, onPlaceSelect, center, 
             </Popup>
           </Marker>
         ))}
+
+        {userLocation && (
+          <Marker
+            position={userLocation}
+            icon={L.divIcon({
+              className: 'user-location-marker',
+              html: `<div style="
+                width: 20px;
+                height: 20px;
+                background: #007AFF;
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 8px rgba(0,122,255,0.5);
+              "></div>`,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
+            })}
+          />
+        )}
       </MapContainer>
 
       {/* Map Controls */}
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
         <button
-          onClick={() => setMapZoom(z => z + 1)}
-          className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+          className="w-10 h-10 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg flex items-center justify-center hover:bg-white active:scale-95 transition-all border border-gray-200/50"
           title="Приблизить"
+          onClick={() => {
+            const map = document.querySelector('.leaflet-container');
+            if (map) {
+              const event = new WheelEvent('wheel', { deltaY: -100 });
+              map.dispatchEvent(event);
+            }
+          }}
         >
-          <ZoomIn size={18} />
+          <ZoomIn size={18} className="text-gray-700" />
         </button>
         <button
-          onClick={() => setMapZoom(z => Math.max(3, z - 1))}
-          className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+          className="w-10 h-10 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg flex items-center justify-center hover:bg-white active:scale-95 transition-all border border-gray-200/50"
           title="Отдалить"
+          onClick={() => {
+            const map = document.querySelector('.leaflet-container');
+            if (map) {
+              const event = new WheelEvent('wheel', { deltaY: 100 });
+              map.dispatchEvent(event);
+            }
+          }}
         >
-          <ZoomOut size={18} />
+          <ZoomOut size={18} className="text-gray-700" />
         </button>
         <button
           onClick={handleLocate}
-          className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+          className="w-10 h-10 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg flex items-center justify-center hover:bg-white active:scale-95 transition-all border border-gray-200/50"
           title="Моё местоположение"
         >
-          <Navigation size={18} className="text-blue-500" />
+          <LocateFixed size={18} className="text-blue-500" />
         </button>
       </div>
 
       {/* Weather Widget */}
-      <div className="absolute bottom-4 left-4 z-[1000] bg-white/90 backdrop-blur-sm rounded-xl px-4 py-2 shadow-lg flex items-center gap-2">
+      <div className="absolute bottom-20 sm:bottom-4 left-4 z-[1000] bg-white/90 backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-lg flex items-center gap-3 border border-gray-200/50">
         <span className="text-2xl">☀️</span>
         <div>
-          <p className="text-sm font-medium">+18°C</p>
-          <p className="text-xs text-gray-500">Ясно</p>
+          <p className="text-[14px] font-semibold text-gray-900">+18°C</p>
+          <p className="text-[11px] text-gray-500">Ясно, Пенза</p>
         </div>
       </div>
     </div>
