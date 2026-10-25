@@ -10,7 +10,9 @@ import NotificationsPanel from './components/NotificationsPanel';
 import Toast from './components/Toast';
 import { AppProvider, useApp } from './context/AppContext';
 import RouteBuilder from './components/RouteBuilder';
-import { Map, List, User, Star, Menu, X, Compass, Heart, Moon, Sun, Bell, Trophy, History, TrendingUp, Route } from 'lucide-react';
+import QuestsPanel from './components/QuestsPanel';
+import StatsPanel from './components/StatsPanel';
+import { Map, List, User, Star, Menu, X, Compass, Heart, Moon, Sun, Bell, Trophy, History, TrendingUp, Route, Target } from 'lucide-react';
 
 type ViewMode = 'map' | 'list';
 
@@ -32,6 +34,8 @@ function AppContent() {
   const [toasts, setToasts] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRouteBuilder, setShowRouteBuilder] = useState(false);
+  const [showQuests, setShowQuests] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -101,15 +105,15 @@ function AppContent() {
 
   return (
     <div className={`h-screen w-screen flex flex-col overflow-hidden ${theme === 'dark' ? 'dark bg-gray-900' : 'bg-[#f2f2f7]'} font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Display','Segoe_UI',sans-serif] transition-colors duration-300`}>
-      {/* Top Header */}
-      <header className={`${theme === 'dark' ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl border-b px-4 py-2.5 flex items-center justify-between shrink-0 z-50`}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-            <Compass size={18} className="text-white" />
+      {/* Top Header - Monochrome Pro */}
+      <header className={`${theme === 'dark' ? 'bg-black/90 border-yellow-500/30' : 'bg-white/95 border-gray-300'} backdrop-blur-xl border-b-2 px-4 py-3 flex items-center justify-between shrink-0 z-50`}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-black dark:bg-yellow-500 rounded-xl flex items-center justify-center shadow-lg border-2 border-yellow-500">
+            <Compass size={20} className="text-yellow-500 dark:text-black" />
           </div>
           <div>
-            <h1 className={`text-[15px] font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} leading-tight tracking-tight`}>Пенза</h1>
-            <p className="text-[11px] text-gray-500 leading-tight">Путеводитель</p>
+            <h1 className={`text-[16px] font-bold ${theme === 'dark' ? 'text-yellow-500' : 'text-black'} leading-tight tracking-tight`}>ПЕНЗА</h1>
+            <p className={`text-[11px] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} leading-tight font-medium`}>ПУТЕВОДИТЕЛЬ</p>
           </div>
         </div>
         
@@ -144,9 +148,29 @@ function AppContent() {
           </button>
 
           <button
+            onClick={() => setShowQuests(true)}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
+              theme === 'dark' ? 'bg-gray-700 text-yellow-500 hover:bg-gray-600' : 'bg-gray-100/80 text-black hover:text-yellow-600'
+            }`}
+            title="Квесты"
+          >
+            <Target size={17} />
+          </button>
+
+          <button
+            onClick={() => setShowStats(true)}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
+              theme === 'dark' ? 'bg-gray-700 text-yellow-500 hover:bg-gray-600' : 'bg-gray-100/80 text-black hover:text-yellow-600'
+            }`}
+            title="Статистика"
+          >
+            <TrendingUp size={17} />
+          </button>
+
+          <button
             onClick={() => setShowRouteBuilder(true)}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
-              theme === 'dark' ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100/80 text-gray-500 hover:text-gray-700'
+              theme === 'dark' ? 'bg-gray-700 text-yellow-500 hover:bg-gray-600' : 'bg-gray-100/80 text-black hover:text-yellow-600'
             }`}
             title="Конструктор маршрута"
           >
@@ -352,6 +376,8 @@ function AppContent() {
       {showProfile && <ProfilePanel onClose={() => setShowProfile(false)} />}
       {showNotifications && <NotificationsPanel onClose={() => setShowNotifications(false)} />}
       {showRouteBuilder && <RouteBuilder onClose={() => setShowRouteBuilder(false)} />}
+      {showQuests && <QuestsPanel onClose={() => setShowQuests(false)} />}
+      {showStats && <StatsPanel onClose={() => setShowStats(false)} />}
 
       {/* Toast Notifications */}
       <div className="fixed bottom-4 right-4 z-[3000] space-y-2">

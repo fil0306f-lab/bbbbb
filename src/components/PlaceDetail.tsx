@@ -1,7 +1,8 @@
 import { Place, categoryLabels, categoryColors, categoryIcons, places } from '../data/places';
-import { Star, MapPin, Clock, Phone, Globe, Navigation, Heart, Share2, Flag, ArrowLeft, ExternalLink, ThumbsUp } from 'lucide-react';
+import { Star, MapPin, Clock, Phone, Globe, Navigation, Heart, Share2, Flag, ArrowLeft, ExternalLink, ThumbsUp, Headphones } from 'lucide-react';
 import { useState } from 'react';
 import PlaceCard from './PlaceCard';
+import AudioGuide from './AudioGuide';
 import { useApp } from '../context/AppContext';
 
 interface PlaceDetailProps {
@@ -23,6 +24,7 @@ export default function PlaceDetail({ place, onBack, onPlaceSelect, favorites, o
     { id: 3, user: 'Мария С.', rating: 5, text: 'Были с детьми — все в восторге! Персонал дружелюбный, всё чисто и ухожено.', date: '2 октября 2024', helpful: 15 },
   ]);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showAudioGuide, setShowAudioGuide] = useState(false);
   const isFavorite = favorites.includes(place.id);
   const color = categoryColors[place.category];
   const icon = categoryIcons[place.category];
@@ -133,7 +135,13 @@ export default function PlaceDetail({ place, onBack, onPlaceSelect, favorites, o
       </div>
 
       {/* Quick Actions */}
-      <div className={`grid grid-cols-4 gap-2 p-3 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} border-b`}>
+      <div className={`grid grid-cols-5 gap-2 p-3 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} border-b`}>
+        <button onClick={() => setShowAudioGuide(true)} className={`flex flex-col items-center gap-1 p-2 rounded-xl ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-yellow-50'} active:scale-95 transition-all`}>
+          <div className="w-9 h-9 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+            <Headphones size={16} className="text-yellow-600 dark:text-yellow-500" />
+          </div>
+          <span className={`text-[10px] ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} font-medium`}>Аудио</span>
+        </button>
         <button onClick={handleRoute} className={`flex flex-col items-center gap-1 p-2 rounded-xl ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-blue-50'} active:scale-95 transition-all`}>
           <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
             <Navigation size={16} className="text-blue-600 dark:text-blue-400" />
@@ -382,6 +390,13 @@ export default function PlaceDetail({ place, onBack, onPlaceSelect, favorites, o
           </>
         )}
       </div>
+
+      {showAudioGuide && (
+        <AudioGuide
+          placeName={place.name}
+          onClose={() => setShowAudioGuide(false)}
+        />
+      )}
     </div>
   );
 }
