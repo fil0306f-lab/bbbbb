@@ -1,5 +1,6 @@
 import { Place, categoryLabels, categoryColors, categoryIcons } from '../data/places';
 import { Star, MapPin, Clock, Heart, ChevronRight } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 interface PlaceCardProps {
   place: Place;
@@ -10,6 +11,7 @@ interface PlaceCardProps {
 }
 
 export default function PlaceCard({ place, onClick, isFavorite = false, onToggleFavorite, compact }: PlaceCardProps) {
+  const { theme } = useApp();
   const color = categoryColors[place.category];
   const icon = categoryIcons[place.category];
 
@@ -17,7 +19,7 @@ export default function PlaceCard({ place, onClick, isFavorite = false, onToggle
     return (
       <div
         onClick={onClick}
-        className="flex items-center gap-3 p-3 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98] border border-gray-100"
+        className={`flex items-center gap-3 p-3 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98] border`}
       >
         <div
           className="w-11 h-11 rounded-xl flex items-center justify-center text-lg shrink-0"
@@ -26,7 +28,7 @@ export default function PlaceCard({ place, onClick, isFavorite = false, onToggle
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-[14px] font-medium text-gray-900 truncate">{place.name}</h4>
+          <h4 className={`text-[14px] font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} truncate`}>{place.name}</h4>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[12px] text-yellow-600 font-medium">★ {place.rating}</span>
             <span className="text-[12px] text-gray-400">{place.address}</span>
@@ -40,7 +42,7 @@ export default function PlaceCard({ place, onClick, isFavorite = false, onToggle
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-hidden group border border-gray-100/50"
+      className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100/50'} rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-hidden group border`}
     >
       {/* Image */}
       <div className="relative h-36 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
@@ -48,8 +50,11 @@ export default function PlaceCard({ place, onClick, isFavorite = false, onToggle
           src={place.image}
           alt={place.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200"><rect fill="${color}20" width="400" height="200"/><text x="200" y="100" text-anchor="middle" font-size="48">${icon}</text></svg>`)}`;
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            target.parentElement!.style.background = `linear-gradient(135deg, ${color}40, ${color}20)`;
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
@@ -83,7 +88,7 @@ export default function PlaceCard({ place, onClick, isFavorite = false, onToggle
 
       {/* Content */}
       <div className="p-3.5">
-        <h3 className="font-semibold text-[14px] text-gray-900 leading-tight line-clamp-2">
+        <h3 className={`font-semibold text-[14px] ${theme === 'dark' ? 'text-white' : 'text-gray-900'} leading-tight line-clamp-2`}>
           {place.name}
         </h3>
         
@@ -106,12 +111,12 @@ export default function PlaceCard({ place, onClick, isFavorite = false, onToggle
 
         <div className="flex flex-wrap gap-1.5 mt-2.5">
           {place.isFree && (
-            <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[11px] font-medium rounded-full">
+            <span className="px-2 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-[11px] font-medium rounded-full">
               Бесплатно
             </span>
           )}
           {place.accessible && (
-            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-medium rounded-full">
+            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 text-[11px] font-medium rounded-full">
               ♿ Доступно
             </span>
           )}

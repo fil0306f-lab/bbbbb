@@ -135,7 +135,7 @@ export default function MapView({ places, selectedPlace, onPlaceSelect, center, 
       {/* Map Controls */}
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
         <button
-          className="w-10 h-10 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg flex items-center justify-center hover:bg-white active:scale-95 transition-all border border-gray-200/50"
+          className="w-10 h-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-xl shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 active:scale-95 transition-all border border-gray-200/50 dark:border-gray-700"
           title="Приблизить"
           onClick={() => {
             const map = document.querySelector('.leaflet-container');
@@ -170,11 +170,11 @@ export default function MapView({ places, selectedPlace, onPlaceSelect, center, 
       </div>
 
       {/* Weather Widget */}
-      <div className="absolute bottom-20 sm:bottom-4 left-4 z-[1000] bg-white/90 backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-lg flex items-center gap-3 border border-gray-200/50">
+      <div className="absolute bottom-20 sm:bottom-4 left-4 z-[1000] bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-lg flex items-center gap-3 border border-gray-200/50 dark:border-gray-700">
         <span className="text-2xl">☀️</span>
         <div>
-          <p className="text-[14px] font-semibold text-gray-900">+18°C</p>
-          <p className="text-[11px] text-gray-500">Ясно, Пенза</p>
+          <p className="text-[14px] font-semibold text-gray-900 dark:text-white">+18°C</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Ясно, Пенза</p>
         </div>
       </div>
     </div>

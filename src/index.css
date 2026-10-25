@@ -8,6 +8,11 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Dark mode support */
+.dark {
+  color-scheme: dark;
+}
+
 /* Custom scrollbar - Apple style */
 ::-webkit-scrollbar {
   width: 6px;
@@ -23,8 +28,16 @@
   border-radius: 3px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.25);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 /* Hide scrollbar for category pills */
@@ -49,6 +62,11 @@
   border: none;
 }
 
+.dark .leaflet-popup-content-wrapper {
+  background: #1f2937;
+  color: white;
+}
+
 .leaflet-popup-content {
   margin: 10px;
   font-family: inherit;
@@ -56,6 +74,10 @@
 
 .leaflet-popup-tip {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dark .leaflet-popup-tip {
+  background: #1f2937;
 }
 
 .leaflet-control-zoom {
@@ -76,8 +98,17 @@
   font-size: 18px !important;
 }
 
+.dark .leaflet-control-zoom a {
+  background: rgba(31, 41, 55, 0.9) !important;
+  color: white !important;
+}
+
 .leaflet-control-zoom a:hover {
   background: white !important;
+}
+
+.dark .leaflet-control-zoom a:hover {
+  background: rgba(31, 41, 55, 1) !important;
 }
 
 .custom-marker {
@@ -122,6 +153,26 @@
   }
 }
 
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .animate-slideUp {
   animation: slideUp 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
@@ -132,6 +183,14 @@
 
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Line clamp utility */
@@ -180,5 +239,114 @@ button:focus-visible {
 @supports (padding: max(0px)) {
   .safe-area-bottom {
     padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Glassmorphism utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.dark .glass {
+  background: rgba(31, 41, 55, 0.8);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth image loading */
+img {
+  transition: opacity 0.3s ease-in-out;
+}
+
+img[src=""] {
+  opacity: 0;
+}
+
+/* Button press effect */
+button:active {
+  transform: scale(0.98);
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.dark .card-hover:hover {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 11px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  margin-bottom: 4px;
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+}
+
+/* Badge pulse */
+.badge-pulse {
+  animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
   }
 }

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { X, Mail, Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 interface AuthModalProps {
   onClose: () => void;
 }
 
 export default function AuthModal({ onClose }: AuthModalProps) {
+  const { setUser } = useApp();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -14,7 +16,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(mode === 'login' ? 'Вход выполнен!' : 'Регистрация успешна!');
+    setUser({ name: name || email.split('@')[0], email, avatar: null });
     onClose();
   };
 
